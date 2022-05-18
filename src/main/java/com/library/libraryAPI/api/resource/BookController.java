@@ -7,6 +7,9 @@ import com.library.libraryAPI.model.Entity.Book;
 import com.library.libraryAPI.service.BookService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
@@ -16,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import javax.validation.Valid;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/books")
@@ -56,11 +60,12 @@ public class BookController {
     @PutMapping("{id}")
     @ResponseStatus(HttpStatus.OK)
     public BookDTO update(@PathVariable Long id, @RequestBody BookDTO bookDTO){
-        Book book = bookService.getById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));
-        book.setAuthor(bookDTO.getAuthor());
-        book.setTitle(bookDTO.getTitle());
-        book = bookService.update(book);
-        return modelMapper.map(book,BookDTO.class);
+        return bookService.getById(id).map(book->{
+            book.setAuthor(bookDTO.getAuthor());
+            book.setTitle(bookDTO.getTitle());
+            book = bookService.update(book);
+            return modelMapper.map(book,BookDTO.class);
+        }).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -69,6 +74,19 @@ public class BookController {
         BindingResult bindingResult = ex.getBindingResult();
         return new ApiErrors(bindingResult);
     }
+
+    @GetMapping
+    @ResponseStatus(HttpStatus.OK)
+    public Page<BookDTO> find(BookDTO dto, Pageable page) {
+        Book filter = modelMapper.map(dto, Book.class);
+        Page<Book> result = bookService.find(filter, page);
+        List<BookDTO> list = result.getContent()
+                .stream()
+                .map(entity -> modelMapper.map(entity, BookDTO.class))
+                .collect(Collectors.toList());
+        return new PageImpl<BookDTO>(list, page, result.getTotalElements());
+    }
+
 
     @ExceptionHandler(BusinessException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
