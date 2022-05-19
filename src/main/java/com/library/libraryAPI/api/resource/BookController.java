@@ -68,13 +68,6 @@ public class BookController {
         }).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiErrors HandleValidationExceptions(MethodArgumentNotValidException ex ){
-        BindingResult bindingResult = ex.getBindingResult();
-        return new ApiErrors(bindingResult);
-    }
-
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
     public Page<BookDTO> find(BookDTO dto, Pageable page) {
@@ -88,9 +81,4 @@ public class BookController {
     }
 
 
-    @ExceptionHandler(BusinessException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiErrors HandleValidationExceptions(BusinessException ex ){
-        return new ApiErrors(ex);
-    }
 }
